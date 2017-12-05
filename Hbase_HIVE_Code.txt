@@ -1,0 +1,158 @@
+
+Create table 
+create 'emp', 'personal data', 'professional data'
+----------------------------------------------------------
+create 'Station_Geo_Map','details'
+
+put 'Station_Geo_Map','ST400','details:geo_cd','A'
+put 'Station_Geo_Map','ST401','details:geo_cd','AU'
+put 'Station_Geo_Map','ST402','details:geo_cd','AP'
+put 'Station_Geo_Map','ST403','details:geo_cd','J'
+put 'Station_Geo_Map','ST404','details:geo_cd','E'
+put 'Station_Geo_Map','ST405','details:geo_cd','A'
+put 'Station_Geo_Map','ST406','details:geo_cd','AU'
+put 'Station_Geo_Map','ST407','details:geo_cd','AP'
+put 'Station_Geo_Map','ST408','details:geo_cd','E'
+put 'Station_Geo_Map','ST409','details:geo_cd','E'
+put 'Station_Geo_Map','ST410','details:geo_cd','A'
+put 'Station_Geo_Map','ST411','details:geo_cd','A'
+put 'Station_Geo_Map','ST412','details:geo_cd','AP'
+put 'Station_Geo_Map','ST413','details:geo_cd','J'
+put 'Station_Geo_Map','ST414','details:geo_cd','E'
+
+XXXXXXXXXXXXXXXXXXXXXXXXX
+create external table Station_Geo_Map(stationid String,geo_cd string)
+ 
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+ 
+with serdeproperties ("hbase.columns.mapping"=":key,details:geo_cd")
+ 
+tblproperties("hbase.table.name"="Station_Geo_Map");
+ 
+XXXXXXXXXXXXXXXXXXXXXXXXX
+
+-----------------------------------
+
+create 'Subscribed_Users','details'
+
+put 'Subscribed_Users','U100','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U100','details:subscription_end_date','1465130523'
+put 'Subscribed_Users','U101','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U101','details:subscription_end_date','1475130523'
+put 'Subscribed_Users','U102','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U102','details:subscription_end_date','1475130523'
+put 'Subscribed_Users','U103','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U103','details:subscription_end_date','1475130523'
+put 'Subscribed_Users','U104','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U104','details:subscription_end_date','1475130523'
+put 'Subscribed_Users','U105','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U105','details:subscription_end_date','1475130523'
+put 'Subscribed_Users','U106','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U106','details:subscription_end_date','1485130523'
+put 'Subscribed_Users','U107','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U107','details:subscription_end_date','1455130523'
+put 'Subscribed_Users','U108','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U108','details:subscription_end_date','1465230623'
+put 'Subscribed_Users','U109','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U109','details:subscription_end_date','1475130523'
+put 'Subscribed_Users','U110','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U110','details:subscription_end_date','1475130523'
+put 'Subscribed_Users','U111','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U111','details:subscription_end_date','1475130523'
+put 'Subscribed_Users','U112','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U112','details:subscription_end_date','1475130523'
+put 'Subscribed_Users','U113','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U113','details:subscription_end_date','1485130523'
+put 'Subscribed_Users','U114','details:subscription_start_date','1465230523'
+put 'Subscribed_Users','U114','details:subscription_end_date','1468130523'
+
+XXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+create external table Subscribed_Users_start(user_id String,subscription_start_date string)
+ 
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+ 
+with serdeproperties ("hbase.columns.mapping"=":key,details:subscription_start_date")
+ 
+tblproperties("hbase.table.name"="Subscribed_Users");
+
+
+XXXXXXXXXXXXXXXXXXXXXXXXX
+
+XXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+create external table Subscribed_Users_end(user_id String,subscription_end_date string)
+ 
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+ 
+with serdeproperties ("hbase.columns.mapping"=":key,details:subscription_end_date")
+ 
+tblproperties("hbase.table.name"="Subscribed_Users");
+ 
+
+XXXXXXXXXXXXXXXXXXXXXXXXX
+---------------------------------------
+create 'Song_Artist_Map','details'
+
+put 'Song_Artist_Map','S200','details:artist_id','A300'
+put 'Song_Artist_Map','S201','details:artist_id','A301'
+put 'Song_Artist_Map','S202','details:artist_id','A302'
+put 'Song_Artist_Map','S203','details:artist_id','A303'
+put 'Song_Artist_Map','S204','details:artist_id','A304'
+put 'Song_Artist_Map','S205','details:artist_id','A301'
+put 'Song_Artist_Map','S206','details:artist_id','A302'
+put 'Song_Artist_Map','S207','details:artist_id','A303'
+put 'Song_Artist_Map','S208','details:artist_id','A304'
+put 'Song_Artist_Map','S209','details:artist_id','A305'
+
+XXXXXXXXXXXXXXXXXXXXXXXXX
+
+create external table Song_Artist_Map(song_id String,artist_id string)
+ 
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+ 
+with serdeproperties ("hbase.columns.mapping"=":key,details:artist_id")
+ 
+tblproperties("hbase.table.name"="Song_Artist_Map");
+ 
+
+XXXXXXXXXXXXXXXXXXXXXXXXX
+
+------------------------------------
+
+create 'User_Artist_Map','details'
+
+put 'User_Artist_Map','U100','details:artist_id','A300&A301&A302'
+put 'User_Artist_Map','U101','details:artist_id','A301&A302'
+put 'User_Artist_Map','U102','details:artist_id','A302'
+put 'User_Artist_Map','U103','details:artist_id','A303&A301&A302'
+put 'User_Artist_Map','U104','details:artist_id','A304&A301'
+put 'User_Artist_Map','U105','details:artist_id','A305&A301&A302'
+put 'User_Artist_Map','U106','details:artist_id','A301&A302'
+put 'User_Artist_Map','U107','details:artist_id','A302'
+put 'User_Artist_Map','U108','details:artist_id','A300&A303&A304'
+put 'User_Artist_Map','U109','details:artist_id','A301&A303'
+put 'User_Artist_Map','U110','details:artist_id','A302&A301'
+put 'User_Artist_Map','U111','details:artist_id','A303&A301'
+put 'User_Artist_Map','U112','details:artist_id','A304&A301'
+put 'User_Artist_Map','U113','details:artist_id','A305&A302'
+put 'User_Artist_Map','U114','details:artist_id','A300&A301&A302'
+
+XXXXXXXXXXXXXXXXXXXXXXXXX
+
+create external table User_Artist_Map(user_id String,artist_id array<String>)
+
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' COLLECTION ITEMS TERMINATED BY '&'
+        
+
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+ 
+with serdeproperties ("hbase.columns.mapping"=":key,details:artist_id")
+ 
+tblproperties("hbase.table.name"="User_Artist_Map");
+ 
+XXXXXXXXXXXXXXXXXXXXXXXXX
+
+---------------------------------------
