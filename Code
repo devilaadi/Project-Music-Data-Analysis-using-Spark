@@ -1,0 +1,204 @@
+--Checking Service
+
+service --status-all
+
+------------------XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-------------------------------
+
+--Loading packages for xml and csv, opening spark shell
+	
+spark-shell --packages com.databricks:spark-xml_2.10:0.4.1,com.databricks:spark-csv_2.10:1.5.0
+
+--Create and import sparksql context by using the command.
+
+--Import XML file
+ 
+val df_xml_d = sqlContext.read.format("com.databricks.spark.xml").option("rowTag","record").load("file:///home/cloudera/Desktop/Acadgild/Web/file.xml")
+
+--Show schema of the file
+df_xml_d.printSchema()
+
+
+--Register temporary table for execution
+
+df_xml_d.registerTempTable("temp_xml")
+
+
+--Changing time to timestamp--
+
+val df_xml = sqlContext.sql("Select artist_id,dislike,unix_timestamp(end_ts) as end_ts,geo_cd,like,song_end_type,song_id,unix_timestamp(start_ts) as start_ts,station_id,unix_timestamp(timestamp) as timestamp,user_id from temp_xml")
+
+df_xml.saveAsTable("temp_xml_P")
+
+-------------------------------------------------------------------------------------------
+
+--Loading data from textfile
+
+--Creating case class , and loading the textfile
+
+case class Test2(Artist_id:String,Dislike:String,End_ts:String,Geo_cd:String,Like:String,Song_end_type:String,Song_id:String,Start_ts:String,Station_id:String,timestamp:String,User_id:String)
+
+val myFile = sc.textFile("file:///home/cloudera/Desktop/Acadgild/Mob/file.txt")
+val df_text= myFile.map( x => x.split(",") ).map(x=> Test2(x(2),x(10),x(5),x(6),x(9),x(8),x(1),x(4),x(7),x(3),x(0))).toDF()
+df_text.registerTempTable("temp_text")
+df_text.saveAsTable("temp_text_P")
+ 
+ 
+-----------------------
+--UNIOIN our data using union all on the datafranme
+
+val df_union = df_xml.unionAll(df_text)
+
+df_union.registerTempTable("data_final")
+df_union.saveAsTable("data_final_P")
+
+------------------------------------------------
+
+--Hive context
+
+import org.apache.spark.sql.hive._
+
+val hc = new HiveContext(sc)
+hc: org.apache.spark.sql.hive.HiveContext = org.apache.spark.sql.hive.HiveContext@326a7829
+
+-----------------------------------------------------------------------------------------------------------
+
+--Important before loading the hive table copy hive-site.xml
+
+cp  /usr/lib/hive/conf/hive-site.xml    /usr/lib/spark/conf/
+--------------------------------------------------------------
+
+--LOADING FROM HIVE TABLE
+
+val hive_artist = sqlContext.sql("Select * from song_artist_map")
+hive_artist.registerTempTable("song_artist_map_hive")
+hive_artist.saveAsTable("song_artist_map_hive_p")
+
+val hive_station_geo_map = sqlContext.sql("Select * from Station_Geo_Map")
+hive_station_geo_map.registerTempTable("Station_Geo_Map_hive")
+hive_station_geo_map.saveAsTable("Station_Geo_Map_hive_P")
+
+
+val hive_Subscribed_Users = sqlContext.sql("Select u.user_id,u.subscription_start_date,t.subscription_end_date from Subscribed_Users_start u join Subscribed_Users_end  t where u.user_id = t.user_id")
+hive_Subscribed_Users.registerTempTable("Subscribed_Users_hive")
+hive_Subscribed_Users.saveAsTable("Subscribed_Users_hive_P")
+
+val hive_User_Artist_Map = sqlContext.sql("Select * from User_Artist_Map")
+hive_User_Artist_Map.registerTempTable("User_Artist_Map_hive")
+hive_User_Artist_Map.saveAsTable("User_Artist_Map_hive_P")
+
+
+---------------------------------------------------------DATA ENRICHMENT---------------------------------------------------------------
+
+--SCHEMA OF OUR DATA
+
+df_union.printSchema()
+
+--data_final_P table shcema
+
+root
+ |-- artist_id: string (nullable = true)
+ |-- dislike: string (nullable = true)
+ |-- end_ts: string (nullable = true)
+ |-- geo_cd: string (nullable = true)
+ |-- like: string (nullable = true)
+ |-- song_end_type: string (nullable = true)
+ |-- song_id: string (nullable = true)
+ |-- start_ts: string (nullable = true)
+ |-- station_id: string (nullable = true)
+ |-- timestamp: string (nullable = true)
+ |-- user_id: string (nullable = true)
+
+
+--Removing null or absent values from Geo_cd using lookup field Station_id from Station_Geo_Map 
+
+val f1 = sqlContext.sql("Select t.artist_id,t.dislike,t.end_ts,hat.geo_cd,t.like,t.song_end_type,t.song_id,t.start_ts,t.station_id,t.timestamp,t.user_id from data_final_P t join Station_Geo_Map_hive_P hat where t.station_id = hat.stationid")
+f1.registerTempTable("f1_t")
+f1.saveAsTable("f1_t_P")
+
+
+--Removing null or absent values from Artist using lookup field Song_id from song_artist_map
+
+val f2 = sqlContext.sql("Select hat.artist_id,t.dislike,t.end_ts,t.geo_cd,t.like,t.song_end_type,t.song_id,t.start_ts,t.station_id,t.timestamp,t.user_id from data_final_P t join song_artist_map_hive_p hat where t.Song_id = hat.song_id ")
+f2.registerTempTable("f2_t")
+f2.saveAsTable("f2_t_P")
+
+-------------FINAL DATA JOINING and filtering invalid records------------------------------------
+
+val data = sqlContext.sql("Select t1.user_id,t1.Song_id,t2.artist_id,t1.timestamp,t1.start_ts,t1.end_ts,t1.geo_cd,t1.station_id,t1.song_end_type,t1.like,t1.dislike from f1_t_P t1 join f2_t_P t2 where ((t1.user_id = t2.user_id) and (t1.user_id !='null'))")
+
+val final_data = data.filter("user_id != ''")
+
+final_data.registerTempTable("abc")
+
+final_data.saveAsTable("finalData")
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------Analysis--------------------------------------------------------------------------------------
+
+--1) Determine top 10 station_id(s) where maximum number of songs were played, which were liked by unique users.
+
+val top_10_stations = sqlContext.sql(
+      " SELECT"+
+      " station_id,"+
+      " COUNT(DISTINCT song_id) AS total_distinct_songs_played,"+
+      " COUNT(DISTINCT user_id) AS distinct_user_count"+
+      " FROM finalData"+
+      " WHERE like=1"+
+      " GROUP BY station_id"+
+      " ORDER BY total_distinct_songs_played DESC"+
+      " LIMIT 10")
+
+top_10_stations.show
+
+--2) Determine total duration of songs played by each type of user, where type of user can be 'subscribed' or 'unsubscribed'. An unsubscribed user is the one whose record is either not present in Subscribed_users lookup table or has subscription_end_date earlier than the timestamp of the song played by him.
+
+-----------------------------------
+val song_duration = sqlContext.sql(" SELECT"+
+      " e.user_id,"+
+      " IF(e.user_id!=s.user_id"+
+      " OR (CAST(s.subscription_end_date as BIGINT) < CAST(e.start_ts as BIGINT)),'unsubscribed','subscribed') AS user_type,"+
+      " e.song_id ,"+
+      " e.artist_id ,"+
+      " (cast(e.end_ts as BIGINT)-cast(e.start_ts as BIGINT))/60 AS total_duration_in_minutes"+
+      " FROM finalData e"+
+      " LEFT OUTER JOIN Subscribed_Users_hive_P s"+
+      " ON e.user_id=s.user_id")
+ 
+song_duration.show
+ 
+song_duration.saveAsTable("song_duration_f")
+    
+sqlContext.sql("Select user_type , SUM(total_duration_in_minutes) as duration from song_duration_f GROUP BY user_type").show
+	  
+
+
+-------------------------------------
+--3) Determine top 10 connected artists. Connected artists are those whose songs are most listened by the unique users who follow them.
+
+val data = sqlContext.sql("Select ua.artist_id_a,COUNT(DISTINCT ua.user_id) as user_count FROM (SELECT user_id,artist_id_a from User_Artist_Map LATERAL VIEW explode(artist_id) artists AS artist_id_a) ua INNER JOIN (SELECT artist_id, song_id, user_id FROM finalData) ed ON ua.artist_id_a = ed.artist_id AND ua.user_id=ed.user_id GROUP BY ua.artist_id_a ORDER BY user_count DESC")
+
+data.show
+
+----------------------------------------
+--4) Determine top 10 songs who have generated the maximum revenue. Royalty applies to a song only if it was liked or was completed successfully or both.
+
+ 
+val top_10_songs_revenue = sqlContext.sql("SELECT song_id,SUM(ABS(CAST(end_ts AS DECIMAL(20,0))-CAST(start_ts AS DECIMAL(20,0)))) AS duration FROM finalData WHERE(like=1 OR song_end_type=0) GROUP BY song_id ORDER BY duration DESC LIMIT 10")
+
+top_10_songs_revenue.show
+--------------------------------------------------------------------------------------------------------------------------
+
+--5) Determine top 10 unsubscribed users who listened to the songs for the longest duration.
+
+val top_10_un_users_longest_duration = sqlContext.sql("SELECT ed.user_id ,SUM(ABS(CAST(ed.end_ts AS DECIMAL(20,0))-CAST(ed.start_ts AS DECIMAL(20,0)))) AS duration FROM finalData ed LEFT OUTER JOIN Subscribed_Users_hive_P su ON ed.user_id=su.user_id WHERE (su.user_id IS NULL OR (CAST(ed.timestamp AS DECIMAL(20,0)) > CAST(su.subscription_end_date AS DECIMAL(20,0)))) GROUP BY ed.user_id ORDER BY duration DESC LIMIT 10")
+
+top_10_un_users_longest_duration.show
+
+
+
+
+
+
+
+
